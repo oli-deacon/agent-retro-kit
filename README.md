@@ -100,9 +100,24 @@ Use this when you want to improve:
 - Change one or two things at a time.
 - Review the whole operating system around the agent, not only the prompt.
 
+## Weekly loop
+
+```mermaid
+flowchart LR
+    A["Run real agent work"] --> B["Log the run"]
+    B --> C["Refresh weekly scorecard"]
+    C --> D["Review best, worst, and costly-success runs"]
+    D --> E["Choose 1-2 experiments"]
+    E --> F["Update prompts, workflow, or tooling"]
+    F --> A
+```
+
+The loop is intentionally small. If it starts feeling like a second job, the process is too heavy.
+
 ## Suggested repo structure
 
 - [docs/claude-code.md](docs/claude-code.md)
+- [docs/codex.md](docs/codex.md)
 - [docs/publishing.md](docs/publishing.md)
 - [templates/weekly-retro-template.md](templates/weekly-retro-template.md)
 - [templates/weekly-scorecard-template.md](templates/weekly-scorecard-template.md)
@@ -170,6 +185,8 @@ Build a collector that creates run candidates from agent sessions, then use the 
 - Prefer reviewing the most expensive successes, not only obvious failures.
 
 See [docs/claude-code.md](docs/claude-code.md) for a concrete operating pattern you can use at work.
+
+If you use Codex, see [docs/codex.md](docs/codex.md) for the equivalent operating pattern.
 
 ## What to review every week
 
