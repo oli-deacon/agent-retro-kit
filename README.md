@@ -1,5 +1,9 @@
 # Agent Retro Kit
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Status: Starter Kit](https://img.shields.io/badge/status-starter--kit-blue.svg)](#quick-start)
+[![Agent-Agnostic](https://img.shields.io/badge/works%20with-Claude%20Code%20%7C%20Codex%20%7C%20Aider-lightgrey.svg)](#what-makes-this-generic)
+
 This is a portable, agent-agnostic operating kit for reviewing how coding agents perform in real work.
 
 It is designed to work with Claude Code, Codex, Cursor agents, Aider, Copilot, Roo, or a mixed team where people use different agentic systems.
@@ -11,15 +15,43 @@ The goal is simple:
 - choose 1-2 small experiments
 - track whether those changes improve delivery quality and reduce avoidable rework
 
+## Why this exists
+
+Most teams using coding agents are learning from anecdotes:
+
+- "that one prompt worked really well"
+- "this model feels worse lately"
+- "we shipped it, but it took forever"
+
+This repo gives you a lightweight way to replace that with a repeatable operating loop:
+
+1. log real runs
+2. review patterns weekly
+3. test small changes
+4. keep what helps
+
+The point is not to build a heavy analytics system. The point is to help a small team get better, faster, with evidence.
+
 ## Quick start
 
-1. Clone or copy this repo.
-2. Log a few real runs in [data/run-log.csv](data/run-log.csv), either manually or with [scripts/log-run.sh](scripts/log-run.sh).
-3. Generate this week's working files with [scripts/bootstrap-weekly-cycle.sh](scripts/bootstrap-weekly-cycle.sh).
+1. Clone this repo.
+2. Run `./scripts/bootstrap-weekly-cycle.sh`.
+3. Log a few real runs in [data/run-log.csv](data/run-log.csv), either manually or with [scripts/log-run.sh](scripts/log-run.sh).
 4. At the end of the week, fill out the generated scorecard in `scorecards/`.
 5. Run a 30-45 minute retro with the generated file in `retros/`.
-6. Record only 1-2 experiments in `experiment-backlog.md`.
-7. Track durable changes in `decision-log.md`.
+
+If you only read one extra file, read [docs/claude-code.md](docs/claude-code.md) for a concrete operating pattern.
+
+## Who this is for
+
+This kit is most useful if:
+
+- you or your team use coding agents in real delivery work
+- you want to improve outcomes without guessing
+- you do not have perfect telemetry
+- you need something lightweight enough that people will actually maintain it
+
+It is especially useful for teams using Claude Code, Codex, Aider, Cursor, or mixed agent workflows.
 
 ## What makes this generic
 
@@ -59,6 +91,14 @@ Use this when you want to improve:
 6. Run one 30-45 minute retro using the generated retro file.
 7. Record only 1-2 experiments for the next cycle.
 8. Track durable changes in the decision log.
+
+## Core ideas
+
+- Measure delivery quality, not just whether code was produced.
+- Treat costly success as a real signal, not a hidden win.
+- Separate verification from implementation.
+- Change one or two things at a time.
+- Review the whole operating system around the agent, not only the prompt.
 
 ## Suggested repo structure
 
