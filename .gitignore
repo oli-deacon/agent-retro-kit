@@ -1,0 +1,18 @@
+# Local editor and OS files
+.DS_Store
+.idea/
+.vscode/
+
+# Derived outputs
+output/
+tmp/
+
+# Spreadsheet and export clutter
+*.tmp
+*.bak
+
+# Generated working artifacts
+scorecards/*.md
+retros/*.md
+!scorecards/.gitkeep
+!retros/.gitkeep
