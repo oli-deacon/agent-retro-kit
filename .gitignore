@@ -16,3 +16,4 @@ scorecards/*.md
 retros/*.md
 !scorecards/.gitkeep
 !retros/.gitkeep
+.env
