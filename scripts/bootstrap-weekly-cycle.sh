@@ -2,6 +2,17 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Generate pre-populated scorecard and retro from run-log.csv
+echo "Generating pre-populated docs from run-log.csv..."
+if [ -n "${1:-}" ]; then
+  python3 "$SCRIPT_DIR/generate-weekly-docs.py" "$1"
+else
+  python3 "$SCRIPT_DIR/generate-weekly-docs.py"
+fi
+echo ""
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCORECARD_TEMPLATE="$ROOT_DIR/templates/weekly-scorecard-template.md"
 RETRO_TEMPLATE="$ROOT_DIR/templates/weekly-retro-template.md"
