@@ -36,15 +36,10 @@ def week_date_range(year: int, week: int) -> tuple[str, str]:
 
 
 def parse_week_arg(arg: str) -> tuple[int, int]:
+    # Parse YYYY-Www directly; strptime("%Y-W%W") is unreliable for ISO weeks
     try:
-        dt = datetime.strptime(arg, "%Y-W%W")
-        iso = dt.isocalendar()
-        return iso[0], iso[1]
-    except ValueError:
-        pass
-    try:
-        year, w = arg.split("-W")
-        return int(year), int(w)
+        year_str, week_str = arg.split("-W")
+        return int(year_str), int(week_str)
     except Exception:
         raise ValueError(f"Could not parse week: {arg!r}. Use format 2026-W26")
 
@@ -534,8 +529,12 @@ Patterns seen in only one run or where evidence is still weak:
 def main():
     now = datetime.now(tz=timezone.utc)
 
-    if len(sys.argv) > 1:
-        year, week = parse_week_arg(sys.argv[1])
+    args = sys.argv[1:]
+    force = "--force" in args
+    week_args = [a for a in args if a != "--force"]
+
+    if week_args:
+        year, week = parse_week_arg(week_args[0])
     else:
         iso = now.isocalendar()
         year, week = iso[0], iso[1]
@@ -549,8 +548,7 @@ def main():
 
     if not current_runs:
         print(f"No runs found for {week_label}. Check that run-log.csv has rows with captured_at in this week.")
-        print(f"(Found {prev_runs.__len__()} rows in previous week {prev_label})")
-        # Generate docs anyway with empty data so files exist
+        print(f"(Found {len(prev_runs)} rows in previous week {prev_label})")
         print("Generating empty-week documents anyway...")
 
     SCORECARDS_DIR.mkdir(exist_ok=True)
@@ -560,14 +558,18 @@ def main():
     scorecard_file = SCORECARDS_DIR / f"{week_label}-scorecard.md"
     retro_file = RETROS_DIR / f"{week_label}-retro.md"
 
+    def write_if_safe(path: pathlib.Path, content: str, label: str) -> None:
+        if path.exists() and not force:
+            print(f"  skipped (exists): {path}  — use --force to overwrite")
+        else:
+            path.write_text(content)
+            print(f"✓ {label}: {path}")
+
     scorecard_content = render_scorecard(week_label, current_runs, prev_runs, date_range)
     retro_content = render_retro(week_label, current_runs, date_range, str(scorecard_file))
 
-    scorecard_file.write_text(scorecard_content)
-    retro_file.write_text(retro_content)
-
-    print(f"✓ Scorecard: {scorecard_file}")
-    print(f"✓ Retro doc: {retro_file}")
+    write_if_safe(scorecard_file, scorecard_content, "Scorecard")
+    write_if_safe(retro_file, retro_content, "Retro doc")
     print(f"  {len(current_runs)} runs this week | {len(prev_runs)} runs last week")
 
 
