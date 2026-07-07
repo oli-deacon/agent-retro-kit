@@ -17,7 +17,8 @@ import pathlib
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict, Counter
 
-KIT_DIR = pathlib.Path.home() / "agent-retro-kit"
+# Derive kit root from this script's location (scripts/ is one level below root)
+KIT_DIR = pathlib.Path(__file__).resolve().parent.parent
 RUN_LOG = KIT_DIR / "data" / "run-log.csv"
 SCORECARDS_DIR = KIT_DIR / "scorecards"
 RETROS_DIR = KIT_DIR / "retros"
@@ -555,8 +556,9 @@ def main():
     SCORECARDS_DIR.mkdir(exist_ok=True)
     RETROS_DIR.mkdir(exist_ok=True)
 
-    scorecard_file = SCORECARDS_DIR / f"scorecard-{week_label}.md"
-    retro_file = RETROS_DIR / f"retro-{week_label}.md"
+    # Match the filename convention used by bootstrap-weekly-cycle.sh
+    scorecard_file = SCORECARDS_DIR / f"{week_label}-scorecard.md"
+    retro_file = RETROS_DIR / f"{week_label}-retro.md"
 
     scorecard_content = render_scorecard(week_label, current_runs, prev_runs, date_range)
     retro_content = render_retro(week_label, current_runs, date_range, str(scorecard_file))
