@@ -24,8 +24,6 @@ def slug_to_project(slug: str) -> str:
         return slug
 
 
-def slug_to_path(slug: str) -> str:
-    return "/" + slug.replace("-", "/").lstrip("/")
 
 
 def parse_ts(ts: str):
@@ -54,6 +52,7 @@ def parse_session(path: pathlib.Path) -> dict:
     tool_calls = []      # list of tool names used
     tool_errors = []     # error strings from tool results
     timestamps = []
+    cwd = ""             # working directory from session entries
 
     for raw in lines:
         try:
@@ -64,6 +63,9 @@ def parse_session(path: pathlib.Path) -> dict:
         ts = entry.get("timestamp")
         if ts:
             timestamps.append(ts)
+
+        if not cwd:
+            cwd = entry.get("cwd", "")
 
         etype = entry.get("type", "")
 
@@ -110,6 +112,7 @@ def parse_session(path: pathlib.Path) -> dict:
         "tool_calls": tool_calls,
         "tool_errors": tool_errors,
         "timestamps": timestamps,
+        "cwd": cwd,
     }
 
 
@@ -249,11 +252,13 @@ def main():
     needs_review     = "yes" if outcome in ("failure", "partial", "uncertain") or retry_count >= 3 else "no"
 
     project_slug = session_path.parent.name
+    # Use cwd recorded in the session rather than decoding the lossy slug
+    workspace_path = data["cwd"] or ""
 
     result = {
         "session_ref":                session_path.stem,
         "project":                    slug_to_project(project_slug),
-        "workspace_path":             slug_to_path(project_slug),
+        "workspace_path":             workspace_path,
         "run_started_at":             timestamps[0] if timestamps else "",
         "run_last_updated_at":        timestamps[-1] if timestamps else "",
         "duration_minutes_inferred":  duration_mins(timestamps[0], timestamps[-1]) if len(timestamps) >= 2 else "",

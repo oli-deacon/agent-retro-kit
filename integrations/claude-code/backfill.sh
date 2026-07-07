@@ -3,9 +3,11 @@
 # and append rows to run-log.csv for sessions not already logged.
 set -euo pipefail
 
-KIT_DIR="$HOME/agent-retro-kit"
+# Derive kit root from this script's location (integrations/claude-code/ is two levels below root)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+KIT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 RUN_LOG="$KIT_DIR/data/run-log.csv"
-EXTRACTOR="$KIT_DIR/scripts/extract-run-metadata.py"
+EXTRACTOR="$SCRIPT_DIR/extract-run-metadata.py"
 PROJECTS_DIR="$HOME/.claude/projects"
 
 logged=0
