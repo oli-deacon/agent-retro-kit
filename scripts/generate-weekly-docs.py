@@ -44,6 +44,12 @@ def parse_week_arg(arg: str) -> tuple[int, int]:
         raise ValueError(f"Could not parse week: {arg!r}. Use format 2026-W26")
 
 
+def previous_week_label(label: str) -> str:
+    year, week = parse_week_arg(label)
+    previous = (datetime.fromisocalendar(year, week, 1) - timedelta(weeks=1)).isocalendar()
+    return f"{previous.year}-W{previous.week:02d}"
+
+
 def captured_week(row: dict) -> str:
     ts = row.get("captured_at") or row.get("run_started_at", "")
     try:
@@ -273,7 +279,7 @@ def render_scorecard(week_label: str, runs: list, prev_runs: list, date_range: t
 - Prepared by: auto-generated
 - Runs included: {total}
 - Notes on data quality: Outcomes are inferred unless `outcome_reviewed` is filled. Review flagged rows before retro.
-- Baseline or comparison week: {iso_week_label(datetime.now() - timedelta(weeks=1))} ({prev_total} runs)
+- Baseline or comparison week: {previous_week_label(week_label)} ({prev_total} runs)
 
 ## Headline metrics
 

@@ -9,7 +9,7 @@ It works whether your evidence comes from manual notes, exported transcripts, a 
 - An agent run is one meaningful request or execution thread.
 - The source of truth can be a chat thread, terminal session, ticket-linked interaction, or manual operator note.
 - Manual logging is enough to begin.
-- Automated capture should fill inference fields and leave review fields blank until weekly review.
+- Automated capture should fill inference fields and leave review fields blank unless a human correction is needed. The retro pipeline derives confidence, verification, and root-cause signals without rewriting the log.
 
 ## Log layers
 
@@ -145,3 +145,12 @@ These stay blank at capture time and are filled during weekly review or focused 
 - Clean sampled wins can remain unreviewed unless selected in retro.
 - Review fills human fields; it should not overwrite inferred fields unless the inference is clearly wrong.
 - When a reviewed row depends on runtime, deploy, or user-visible behavior, fill the verification review fields instead of relying on `reviewer_note` alone.
+
+## Automation rules
+
+- Append all eligible completed runs, including clean wins. Failure-only sampling makes weekly rates misleading.
+- Use a stable `run_id` and make collectors idempotent.
+- Treat reviewed fields as optional overrides, not required inputs to the automated retro.
+- The pipeline infers verification only when tool evidence supports it; otherwise it reports `unknown` instead of manufacturing certainty.
+- Record experiment assignments separately in `data/experiment-exposures.csv`. Eligibility is not proof that a treatment was applied.
+- Run `python3 scripts/run-retro.py --week latest-complete` to produce the weekly documents, JSON snapshot, validation status, and dashboard.

@@ -115,3 +115,19 @@ Week 3 onward:
 - keep the logging light
 - study costly success as seriously as outright failure
 - revert experiments that do not help
+
+## No-touch Codex loop
+
+Once the schema is stable, move collection out of the weekly meeting. A Codex automation or scheduled task can inspect completed coding threads, append idempotent rows to `data/run-log.csv`, and record any experiment that was actually applied.
+
+Use this collector contract in the automation prompt:
+
+> Collect every eligible completed coding or mixed-workflow run since the last successful sweep. Use a stable run ID, avoid duplicates, classify outcomes conservatively, and include verification evidence. If an active experiment was applied, record its ID, run ID, and variant with `scripts/record-experiment-exposure.py`. Run the unit tests and refresh the retro dashboard before finishing.
+
+Then trigger the weekly analysis:
+
+```bash
+python3 scripts/run-retro.py --week latest-complete
+```
+
+The command deliberately does not edit prompts or activate experiments. Those remain review decisions; scorecard assembly, validation, experiment arithmetic, snapshots, and visualisation are automated.

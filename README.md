@@ -35,10 +35,9 @@ The point is not to build a heavy analytics system. The point is to help a small
 ## Quick start
 
 1. Clone this repo.
-2. Run `./scripts/bootstrap-weekly-cycle.sh`.
-3. Log a few real runs in [data/run-log.csv](data/run-log.csv), either manually or with [scripts/log-run.sh](scripts/log-run.sh).
-4. At the end of the week, fill out the generated scorecard in `scorecards/`.
-5. Run a 30-45 minute retro with the generated file in `retros/`.
+2. Log runs in [data/run-log.csv](data/run-log.csv), manually or from your agent collector.
+3. Trigger `python3 scripts/run-retro.py --week latest-complete`.
+4. Review the generated scorecard, retro, experiment evidence, and `output/retro-dashboard/index.html`.
 
 If you only read one extra file, read [docs/claude-code.md](docs/claude-code.md) for a concrete operating pattern.
 
@@ -86,10 +85,10 @@ Use this when you want to improve:
 1. Use this folder as the repo root layout for a new repo.
 2. Start with manual logging in [data/run-log.csv](data/run-log.csv).
 3. Use [scripts/log-run.sh](scripts/log-run.sh) when a run ends or during weekly backfill.
-4. Run [scripts/bootstrap-weekly-cycle.sh](scripts/bootstrap-weekly-cycle.sh) once per week to create the week files.
-5. Refresh the generated scorecard from the recent rows.
-6. Run one 30-45 minute retro using the generated retro file.
-7. Record only 1-2 experiments for the next cycle.
+4. Schedule your collector to append completed runs and record active experiment exposures.
+5. Trigger `python3 scripts/run-retro.py --week latest-complete` once per week.
+6. Review the pre-populated results; there is no scorecard assembly step.
+7. Activate only 1-2 experiments for the next cycle.
 8. Track durable changes in the decision log.
 
 ## Core ideas
@@ -104,11 +103,11 @@ Use this when you want to improve:
 
 ```mermaid
 flowchart LR
-    A["Run real agent work"] --> B["Log the run"]
-    B --> C["Refresh weekly scorecard"]
-    C --> D["Review best, worst, and costly-success runs"]
-    D --> E["Choose 1-2 experiments"]
-    E --> F["Update prompts, workflow, or tooling"]
+    A["Run real agent work"] --> B["Collector logs run + exposure"]
+    B --> C["Trigger automated retro"]
+    C --> D["Scorecard, snapshot, and dashboard"]
+    D --> E["Human reviews results and chooses experiments"]
+    E --> F["Collector applies active experiment"]
     F --> A
 ```
 
@@ -134,6 +133,9 @@ The loop is intentionally small. If it starts feeling like a second job, the pro
 - [examples/sample-weekly-scorecard.md](examples/sample-weekly-scorecard.md)
 - [examples/sample-weekly-retro.md](examples/sample-weekly-retro.md)
 - [scripts/bootstrap-weekly-cycle.sh](scripts/bootstrap-weekly-cycle.sh)
+- [scripts/run-retro.py](scripts/run-retro.py)
+- [scripts/generate-dashboard.py](scripts/generate-dashboard.py)
+- [scripts/record-experiment-exposure.py](scripts/record-experiment-exposure.py)
 - [scripts/log-run.sh](scripts/log-run.sh)
 
 ## Operating model
@@ -174,7 +176,27 @@ Export transcript metadata from your tool and append rows automatically, leaving
 
 ### Level 3: Fully automated
 
-Build a collector that creates run candidates from agent sessions, then use the weekly retro only for human review and experiment decisions.
+Have a collector append every eligible completed run and record the active experiment/variant at execution time. The only weekly actions are triggering the retro and reviewing its results:
+
+```bash
+python3 scripts/run-retro.py --week latest-complete
+```
+
+That command validates the run log, generates the scorecard and retro, evaluates experiments, writes a machine-readable snapshot, and refreshes a self-contained dashboard at `output/retro-dashboard/index.html`.
+
+The dashboard keeps the headline health metrics, weekly success and verification trends, experiment exposure counts, data quality, confidence, and the underlying run evidence together. It has no package or hosted-service dependency.
+
+## No-touch collection contract
+
+The retro can be automated only as far as its input evidence. Configure your agent or scheduled collector to:
+
+1. append one row for every eligible completed run, including clean wins
+2. use a stable `run_id` so retries do not create duplicates
+3. populate inferred outcome and verification evidence conservatively
+4. call `scripts/record-experiment-exposure.py EXP-ID RUN-ID --variant treatment` whenever an active experiment is actually applied
+5. run `python3 scripts/run-retro.py --week latest-complete` on demand or on a weekly schedule
+
+Never infer experiment exposure from eligibility alone. A run counts only when it is explicitly linked in [data/experiment-exposures.csv](data/experiment-exposures.csv).
 
 ## Practical guidance for Claude Code or similar tools
 
@@ -247,4 +269,4 @@ Use this or adapt it:
 - Store reviewed retros separately from raw run logs.
 - Avoid collecting sensitive prompt contents if your company policy is strict.
 - Prefer short factual summaries over transcript dumps.
-- If you later automate collection, leave human review fields blank until review time.
+- Automated analysis may derive confidence, verification, and root-cause signals without modifying the append-only run log. Human review fields remain optional overrides.

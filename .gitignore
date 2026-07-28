@@ -17,3 +17,5 @@ retros/*.md
 !scorecards/.gitkeep
 !retros/.gitkeep
 .env
+__pycache__/
+*.py[cod]

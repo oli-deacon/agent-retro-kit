@@ -4,6 +4,14 @@
 
 Each experiment should be small, testable, and tied to a metric. Avoid permanent changes by default. Test first, then keep, modify, or revert.
 
+`experiments.json` is the machine-readable source used by the dashboard. Keep this Markdown file for the decision narrative. When a collector actually applies an experiment, record the assignment with:
+
+```bash
+python3 scripts/record-experiment-exposure.py EXP-001 RUN-ID --variant treatment
+```
+
+Only explicit rows in `data/experiment-exposures.csv` count toward results. This prevents eligible-but-untreated runs from contaminating the evaluation.
+
 ## Experiment list
 
 | ID | Experiment | Hypothesis | Type | Owner | Date added | Status | Target metric | Review date |

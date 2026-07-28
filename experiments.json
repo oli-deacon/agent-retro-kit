@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "experiments": [
+    {
+      "id": "EXP-001",
+      "title": "Verification checklist before handoff",
+      "hypothesis": "A short close-out checklist will increase verified outcomes without increasing retries.",
+      "status": "proposed",
+      "owner": "",
+      "start_week": "",
+      "metric": "verification_completed_rate",
+      "target_direction": "increase",
+      "minimum_exposures": 5,
+      "eligible_filter": {
+        "coding_intensity": [
+          "coding-heavy",
+          "mixed"
+        ]
+      }
+    }
+  ]
+}
