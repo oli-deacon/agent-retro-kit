@@ -145,3 +145,12 @@ These stay blank at capture time and are filled during weekly review or focused 
 - Clean sampled wins can remain unreviewed unless selected in retro.
 - Review fills human fields; it should not overwrite inferred fields unless the inference is clearly wrong.
 - When a reviewed row depends on runtime, deploy, or user-visible behavior, fill the verification review fields instead of relying on `reviewer_note` alone.
+
+## Generated weekly reports
+
+- Group each run by the ISO week of `run_started_at`, using the timestamp's recorded calendar date without converting timezones. Later updates or imports do not move it to another week.
+- Fall back to `captured_at` only when the start is missing or blank (legacy/manual rows). An invalid nonblank start, or invalid fallback, leaves the row outside weekly reports until corrected.
+- Missing, malformed, and negative retry counts are unknown, excluded from medians and retry ranking. Explicit `0` is valid. Medians retain fractional values when the two middle counts differ.
+- Costly-success candidates use effort proxies, not money or token cost. Among successful runs with known retries, choose the highest positive corrective retry count, breaking ties with the longest usable duration. If all measured counts are zero, report no positive-retry candidate. Only when no successful run has a known retry count, fall back to the longest usable duration and label it as duration-only evidence. Duration must be a positive integer below 1,440 minutes, matching the duration metric's exclusion of inflated multi-day sessions. Remaining ties keep CSV order.
+- The separate clean-success candidate requires measured zero retries and no `no` or `uncertain` acceptance-without-edit evidence. Missing acceptance evidence does not confirm acceptance; the candidate remains provisional. Human-reviewed outcomes and acceptance values take precedence over inference. Without usable evidence, leave the candidate absent rather than calling an unmeasured run clean or costly.
+- Candidates are prompts for human review, not proof of avoidable effort. Compare task scope before concluding that a run was too costly.

@@ -30,3 +30,11 @@ Thanks for improving the kit.
 - keep examples realistic and concise
 - note whether a change is tool-agnostic or tool-specific
 - if you add a tool-specific guide, keep the core templates generic
+
+## Regression checks
+
+Run the standard-library report tests from the repository root:
+
+```sh
+python3 -m unittest discover -s tests -v
+```

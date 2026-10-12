@@ -45,11 +45,14 @@ def parse_week_arg(arg: str) -> tuple[int, int]:
 
 
 def captured_week(row: dict) -> str:
-    ts = row.get("captured_at") or row.get("run_started_at", "")
+    # Keep the recorded calendar date; imports and later activity do not move a run.
+    ts = (row.get("run_started_at") or "").strip()
+    if not ts:
+        ts = (row.get("captured_at") or "").strip()
     try:
-        dt = datetime.strptime(ts[:19], "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+        dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
         return iso_week_label(dt)
-    except Exception:
+    except ValueError:
         return ""
 
 
@@ -82,30 +85,31 @@ def outcome_counts(runs: list) -> dict:
     return c
 
 
+def retry_count(row: dict):
+    """Missing, malformed, or negative counts are unknown; explicit zero is valid."""
+    try:
+        value = int(row.get("retry_count_inferred"))
+        return value if value >= 0 else None
+    except (TypeError, ValueError):
+        return None
+
+
+def usable_duration(row: dict):
+    try:
+        value = int(row.get("duration_minutes_inferred"))
+        return value if 0 < value < 1440 else None
+    except (TypeError, ValueError):
+        return None
+
+
 def median_retries(runs: list) -> str:
-    vals = []
-    for r in runs:
-        try:
-            vals.append(int(r.get("retry_count_inferred", 0) or 0))
-        except ValueError:
-            pass
-    if not vals:
-        return "n/a"
-    return str(int(statistics.median(vals)))
+    vals = [value for r in runs if (value := retry_count(r)) is not None]
+    return f"{statistics.median(vals):g}" if vals else "n/a"
 
 
 def median_duration(runs: list) -> str:
-    vals = []
-    for r in runs:
-        try:
-            v = int(r.get("duration_minutes_inferred", 0) or 0)
-            if 0 < v < 1440:  # ignore inflated multi-day durations
-                vals.append(v)
-        except ValueError:
-            pass
-    if not vals:
-        return "n/a"
-    return f"{int(statistics.median(vals))} min"
+    vals = [value for r in runs if (value := usable_duration(r)) is not None]
+    return f"{int(statistics.median(vals))} min" if vals else "n/a"
 
 
 def flag_rate(runs: list, flag: str) -> str:
@@ -183,11 +187,41 @@ def runs_to_inspect(runs: list) -> dict:
     def fmt(r):
         return f"`{r['run_id']}` — {title(r)}" if r else "none this week"
 
-    low_retry_success = sorted(successes, key=lambda r: int(r.get("retry_count_inferred") or 0))
+    measured = [r for r in successes if retry_count(r) is not None]
+    costly = None
+    if measured:
+        candidate = max(measured, key=lambda r: (retry_count(r), usable_duration(r) or 0))
+        if retry_count(candidate) > 0:
+            costly = candidate
+    else:
+        timed = [r for r in successes if usable_duration(r) is not None]
+        if timed:
+            costly = max(timed, key=usable_duration)
+
+    # A clean candidate needs measured zero retries and no contrary edit evidence.
+    clean = next((r for r in measured if retry_count(r) == 0 and
+                  (r.get("accepted_without_edit_reviewed") or
+                   r.get("accepted_without_edit_inferred")) not in ("no", "uncertain")), None)
+    clean_text = fmt(clean) if clean else "none with measured zero retries and no contrary edit evidence"
+    if costly is not None:
+        retries = retry_count(costly)
+        duration = usable_duration(costly)
+        evidence = f"{retries} corrective retries" if retries is not None else "retries unknown; duration-only fallback"
+        if duration is not None:
+            evidence += f"; {duration} min"
+        costly_text = f"{fmt(costly)} ({evidence}; effort proxy, not monetary cost)"
+    elif not successes:
+        costly_text = "none this week"
+    elif measured:
+        costly_text = "none with positive measured retries"
+    else:
+        costly_text = "unknown — no usable retry or duration evidence for successes"
+
     return {
-        "best_win": fmt(low_retry_success[0]) if low_retry_success else "none this week",
+        "best_win": clean_text,
         "worst_failure": fmt(failures[-1]) if failures else "none this week",
-        "clean_success": fmt(low_retry_success[0]) if low_retry_success else "none this week",
+        "clean_success": clean_text,
+        "costly_success": costly_text,
         "partial_needing_review": fmt(partials[0]) if partials else (fmt(needs[0]) if needs else "none this week"),
     }
 
@@ -272,7 +306,7 @@ def render_scorecard(week_label: str, runs: list, prev_runs: list, date_range: t
 - Date range: {date_range[0]} to {date_range[1]}
 - Prepared by: auto-generated
 - Runs included: {total}
-- Notes on data quality: Outcomes are inferred unless `outcome_reviewed` is filled. Review flagged rows before retro.
+- Notes on data quality: Outcomes are inferred unless `outcome_reviewed` is filled. Review flagged rows before retro. Missing or invalid retry counts are unknown and excluded from medians.
 - Baseline or comparison week: {iso_week_label(datetime.now() - timedelta(weeks=1))} ({prev_total} runs)
 
 ## Headline metrics
@@ -326,7 +360,8 @@ _(fill during retro — look for low-retry successes and accepted-without-edit r
 
 - Best run to learn from: {inspect['best_win']}
 - Most damaging failure: {inspect['worst_failure']}
-- Clean success with low retries: {inspect['clean_success']}
+- Clean success with measured zero retries: {inspect['clean_success']}
+- Costly success worth studying: {inspect['costly_success']}
 - Partial or uncertain run needing review: {inspect['partial_needing_review']}
 
 ## Recommended focus for retro
@@ -409,7 +444,7 @@ def render_retro(week_label: str, runs: list, date_range: tuple, scorecard_path:
 - Failure rate: {pct(oc.get('failure',0), total)} (inferred)
 - Needs-review rate: {pct(len(needs_review), total)}
 - Acceptance without edit rate: {acceptance_rate(runs)}
-- Median retry count: {median_retries(runs)}
+- Median retry count: {median_retries(runs)} (missing or invalid counts excluded)
 - Most common task type: {most_common_task_str}
 - Projects represented: {projects_str}
 - Most common failure mode: {dominant}
@@ -430,6 +465,8 @@ _(fill during retro — look for low-retry successes and accepted-without-edit r
 
 Best candidate to study: {inspect['best_win']}
 
+Clean success with measured zero retries: {inspect['clean_success']}
+
 - What the agent or operator did:
 - Which run_ids demonstrate it:
 - Why it contributed to success:
@@ -439,6 +476,8 @@ Best candidate to study: {inspect['best_win']}
 _(fill during retro — focus on the dominant pattern: **{dominant}**)_
 
 Most damaging failure: {inspect['worst_failure']}
+
+Costly success worth studying: {inspect['costly_success']}
 
 - What went wrong:
 - Which run_ids demonstrate it:
@@ -547,7 +586,7 @@ def main():
     current_runs, prev_runs = load_runs(week_label, prev_label)
 
     if not current_runs:
-        print(f"No runs found for {week_label}. Check that run-log.csv has rows with captured_at in this week.")
+        print(f"No runs found for {week_label}. Check that run-log.csv has rows with run_started_at (or legacy captured_at) in this week.")
         print(f"(Found {len(prev_runs)} rows in previous week {prev_label})")
         print("Generating empty-week documents anyway...")
 
